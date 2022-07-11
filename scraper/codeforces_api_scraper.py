@@ -10,6 +10,7 @@ with open('../codeforces/problemset.csv', 'r', encoding = 'utf-8', newline = '')
 
         CONTEST_ID = int(row[0])
         TARGET_PROBLEM = row[2]
+        TARGET_INDEX = row[1]
         TARGET_LANGUAGE = 'GNU C++14'
         start = 1
         count = 100
@@ -45,24 +46,29 @@ with open('../codeforces/problemset.csv', 'r', encoding = 'utf-8', newline = '')
                         problemsSubmissionsCount+=1
                         OK += 1
                         with open('../codeforces/submission_ids_OK.csv', 'a+', encoding='utf-8', newline='') as f:
-                            f.write("{},{}\n".format(r['id'],r['verdict']))
+                            f.write("{},{},{},{},{},{},{}\n".format(CONTEST_ID,TARGET_INDEX,TARGET_PROBLEM,r['id'],r['verdict'],r['timeConsumedMillis'],r['memoryConsumedBytes']))
                     elif r['verdict'] == 'WRONG_ANSWER':
                         WRONG_ANSWER += 1
                         with open('../codeforces/submission_ids_WA.csv', 'a+', encoding='utf-8', newline='') as f:
-                            f.write("{},{}\n".format(r['id'],r['verdict']))
+                            f.write("{},{},{},{},{},{},{}\n".format(CONTEST_ID,TARGET_INDEX,TARGET_PROBLEM,r['id'],r['verdict'],r['timeConsumedMillis'],r['memoryConsumedBytes']))
+
                     elif r['verdict'] == 'COMPILATION_ERROR':
                         
                         COMPILATION_ERROR += 1
                         with open('../codeforces/submission_ids_CE.csv', 'a+', encoding='utf-8', newline='') as f:
-                            f.write("{},{}\n".format(r['id'],r['verdict']))
+                            f.write("{},{},{},{},{},{},{}\n".format(CONTEST_ID,TARGET_INDEX,TARGET_PROBLEM,r['id'],r['verdict'],r['timeConsumedMillis'],r['memoryConsumedBytes']))
+
                     else:
                         
                         OTHER += 1
                         with open('../codeforces/submission_ids_OTHR.csv', 'a+', encoding='utf-8', newline='') as f:
-                            f.write("{},{}\n".format(r['id'],r['verdict']))
+                            f.write("{},{},{},{},{},{},{}\n".format(CONTEST_ID,TARGET_INDEX,TARGET_PROBLEM,r['id'],r['verdict'],r['timeConsumedMillis'],r['memoryConsumedBytes']))
+
                     print("Problem Name:{}, OK: {}, WA: {}, CE: {}, OTHR: {}".format(TARGET_PROBLEM, OK, WRONG_ANSWER,COMPILATION_ERROR,OTHER))
                     
     print(f"The total no of submissions = {problemsSubmissionsCount}")
+    print("DONE!!")
+    
         
 
     
