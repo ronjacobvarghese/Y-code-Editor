@@ -30,7 +30,7 @@ print(problemsDictionary[1])
 for r in problemsDictionary:
     problemsCount += 1
     if r['index'] in ['A','B','C']:
-      with open('codeforces/problemset.csv', 'a+', encoding='utf-8', newline='') as f:
+      with open('../codeforces/problemset.csv', 'a+', encoding='utf-8', newline='') as f:
           f.write("{},{},{}\n".format(r['contestId'], r['index'], r['name']))
 
 print(f'The no of problems:{problemsCount}')
