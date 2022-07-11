@@ -1,6 +1,6 @@
 import requests, bs4, csv, json, time
 
-with open('codeforces/problemset.csv', 'r', encoding = 'utf-8', newline = '') as r:
+with open('../codeforces/problemset.csv', 'r', encoding = 'utf-8', newline = '') as r:
 
     readFile =csv.reader(r)
     problemsSubmissionsCount = 0
@@ -19,7 +19,7 @@ with open('codeforces/problemset.csv', 'r', encoding = 'utf-8', newline = '') as
         COMPILATION_ERROR = 0
         OTHER = 0
 
-        while OK < 51:
+        while OK < 30:
             
             url = 'https://codeforces.com/api/contest.status?contestId={}&from={}&count={}'.format(CONTEST_ID,start,count) 
             start += count
@@ -44,21 +44,21 @@ with open('codeforces/problemset.csv', 'r', encoding = 'utf-8', newline = '') as
                     if r['verdict'] == 'OK':
                         problemsSubmissionsCount+=1
                         OK += 1
-                        with open('codeforces/submission_ids_OK.csv', 'a+', encoding='utf-8', newline='') as f:
+                        with open('../codeforces/submission_ids_OK.csv', 'a+', encoding='utf-8', newline='') as f:
                             f.write("{},{}\n".format(r['id'],r['verdict']))
                     elif r['verdict'] == 'WRONG_ANSWER':
                         WRONG_ANSWER += 1
-                        with open('codeforces/submission_ids_WA.csv', 'a+', encoding='utf-8', newline='') as f:
+                        with open('../codeforces/submission_ids_WA.csv', 'a+', encoding='utf-8', newline='') as f:
                             f.write("{},{}\n".format(r['id'],r['verdict']))
                     elif r['verdict'] == 'COMPILATION_ERROR':
                         
                         COMPILATION_ERROR += 1
-                        with open('codeforces/submission_ids_CE.csv', 'a+', encoding='utf-8', newline='') as f:
+                        with open('../codeforces/submission_ids_CE.csv', 'a+', encoding='utf-8', newline='') as f:
                             f.write("{},{}\n".format(r['id'],r['verdict']))
                     else:
                         
                         OTHER += 1
-                        with open('codeforces/submission_ids_OTHR.csv', 'a+', encoding='utf-8', newline='') as f:
+                        with open('../codeforces/submission_ids_OTHR.csv', 'a+', encoding='utf-8', newline='') as f:
                             f.write("{},{}\n".format(r['id'],r['verdict']))
                     print("Problem Name:{}, OK: {}, WA: {}, CE: {}, OTHR: {}".format(TARGET_PROBLEM, OK, WRONG_ANSWER,COMPILATION_ERROR,OTHER))
                     
