@@ -1,12 +1,9 @@
 import requests, bs4, csv
 
 
+CATEGORIES = ['OK','CE','OTHR','WA']
 
-
-
-categories = ['OK','CE','OTHR','WA']
-
-for cat in categories:
+for cat in CATEGORIES:
     i = 0
 
     with open('../codeforces/submission_ids_{}.csv'.format(cat),'r',encoding='utf-8', newline='') as r:
@@ -47,6 +44,6 @@ for cat in categories:
                 print('got {} submission: {} problem number: {} problem_letter: {} submission_id: {}'.format(cat,i,PROBLEM_NUMBER,PROBLEM_LETTER,SUBMISSION_ID))
                 i += 1
                 
-                writer.writerow(['<START> {} <END>'.format(elems[0].getText()),VERDICT,TIME,MEMORY])
+                writer.writerow([PROBLEM_NUMBER,PROBLEM_LETTER,'{} '.format(elems[0].getText()),VERDICT,TIME,MEMORY])
 print('DONE!')
     
