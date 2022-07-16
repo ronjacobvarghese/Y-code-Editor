@@ -38,7 +38,7 @@ with open('../codeforces/problemset_replica.csv', 'r', encoding ='utf-8', newlin
             except AttributeError as err:
               print('We have a problem: {}'.format(err))
               with open('../codeforces/test_cases/test_cases_incomplete.csv','a+',encoding='utf-8',newline = '') as f:
-                f.write('{},{}'.format(PROBLEM_NUMBER,PROBLEM_LETTER))
+                f.write('{},{}\n'.format(PROBLEM_NUMBER,PROBLEM_LETTER))
               continue
               
 print('DONE!!')
