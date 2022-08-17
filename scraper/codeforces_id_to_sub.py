@@ -3,6 +3,8 @@ import requests, bs4, csv, time
 
 CATEGORIES = ['OK','CE','OTHR','WA']
 
+
+
 for cat in CATEGORIES:
     i = 0
 
@@ -26,8 +28,7 @@ for cat in CATEGORIES:
                     MEMORY = row[6]
                     
                     l = 1;r = 0
-                    while l and r < 20:
-                        time.sleep(1)
+                    while l and r < 10:
                         res = requests.get('http://codeforces.com/contest/{}/submission/{}'.format(PROBLEM_NUMBER,SUBMISSION_ID),timeout = 10)
                         #check if the download succeeded 
                         try:
@@ -47,8 +48,8 @@ for cat in CATEGORIES:
                         print(r,end = '')
                     print()
                             
-                    if r == 20:
-                        time.sleep(600)
+                    if r == 10:
+                        time.sleep(300)
                         with open("../codeforces/submissions/code_snippets_incomplete.csv","+a", encoding = "utf-8",newline = '') as f:
                             f.write(f"{PROBLEM_NUMBER},{PROBLEM_LETTER},{SUBMISSION_ID},{PROBLEM_NAME},{TIME},{MEMORY}\n")
                         continue
