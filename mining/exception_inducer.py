@@ -17,7 +17,7 @@ class ExceptionInducer:
 
     def  __checkParanthesis(self, codeSnip):
         stack = []
-        self.brackets = {}
+        self.__brackets = {}
 
         opening = '(['
         closing = ')]'
@@ -34,7 +34,7 @@ class ExceptionInducer:
 
                 if ((char == ")" and stack[-1][1] == "(") or
                         (char == ']' and stack[-1][1] == '[')):
-                    self.brackets[stack.pop()] = (charIndex, char)
+                    self.__brackets[stack.pop()] = (charIndex, char)
                 else:
                     return False
 
@@ -43,10 +43,18 @@ class ExceptionInducer:
             return (False, "Brackets UnBalanced Char:{}".format(stack.pop()[0]))
 
         return (True, "Brackets are Balanced!!")
-
     
-
-
+    def __searchKeyword(self, codeSnip):
+        self.__dataMap = []
+        print(codeSnip)
+        searchDatatype = re.finditer('[\( ](int|bool|float|double|char\b)\s',codeSnip)
+        # print(list(searchDatatype))
+        for i in searchDatatype:
+            end = i.end()
+            while codeSnip[end] != ";":
+                end+=1
+            self.__dataMap.append((i.end(),end))
+                                    
     def sqrtExc(self, codeSnip): 
         isBalanced = self.__checkParanthesis(codeSnip)
         if(not isBalanced[0]):
@@ -54,12 +62,12 @@ class ExceptionInducer:
             exit(1)
         else:
             print("Success: " + isBalanced[-1])
-        print(self.brackets)
+        print(self.__brackets)
         locSqrt = re.finditer('sqrt\(', codeSnip)
         tempSnip = codeSnip
         for code in locSqrt:
             startPos = code.start()
-            endPos = self.brackets[(startPos+4,codeSnip[startPos+4])][0]+1
+            endPos = self.__brackets[(startPos+4,codeSnip[startPos+4])][0]+1
             tempSnip = tempSnip.replace(codeSnip[startPos:endPos],'sqrt({})'.format(random.randrange(-999999999,-1)))
             # print(tempSnip[startPos:endPos])
 
@@ -73,7 +81,7 @@ class ExceptionInducer:
                 exit(1)
             else:
                 print("Success: " + isBalanced[-1])
-            print(self.brackets)
+            print(self.__brackets)
             print(codeSnip[i])
             validtype = True
             for datatype in ['int','char','float','bool']:
@@ -85,17 +93,14 @@ class ExceptionInducer:
                 arrloc = re.finditer('[a-zA-Z_][a-zA-Z0-9_]*\[',codeSnip[i])
                 for pos in arrloc:
                     startpos = pos.end()
-                    endpos = self.brackets[(startpos-1,codeSnip[i][startpos-1])][0]
+                    endpos = self.__brackets[(startpos-1,codeSnip[i][startpos-1])][0]
                     print(codeSnip[i][endpos])
                     codeSnip[i] = codeSnip[i][:startpos]+str(random.randint(10**9,10**11))+codeSnip[i][endpos:]
                 print(codeSnip[i])
 
         return codeSnip
     
-    def indexExc2(self, codeSnip):
-        dataMap = {}
-        searchDatatype = re.finditer('\b(int|bool|float|double|char',codeSnip)
-
+            
     def dividebyzero(self, codeSnip):
         for i in range(len(codeSnip)):
             isBalanced = self.__checkParanthesis(codeSnip[i])
@@ -104,7 +109,7 @@ class ExceptionInducer:
                 exit(1)
             else:
                 print("Success: " + isBalanced[-1])
-            print(self.brackets)
+            print(self.__brackets)
             print(codeSnip[i])
             if 'cout' in codeSnip[i]:
                 codeSnip[i] = '\tcout<<{}/0;\n'.format(i)
@@ -119,23 +124,56 @@ class ExceptionInducer:
                 exit(1)
             else:
                 print("Success: " + isBalanced[-1])
-            print(self.brackets)
+            print(self.__brackets)
             print(codeSnip[i])
             locFunc = re.finditer('[a-zA-Z_][a-zA-Z0-9_]*\(', codeSnip[i])
             for pos in locFunc:
                 codeSnip[i] = codeSnip[i][:pos.start()]+codeSnip[i][pos.start():pos.end()].swapcase()+codeSnip[i][pos.end():]
             print(codeSnip[i])
         return codeSnip
+    
+    def induceArrayOutOfRange(self,codeSnip):
+        self.__searchKeyword(codeSnip)
+        isBalanced = self.__checkParanthesis(codeSnip)
+        print(self.__brackets)
+        if(not isBalanced[0]):
+            print("Error:" + isBalanced[-1])
+            exit(1)
+        else:
+            print("Success: " + isBalanced[-1])
+        validarr = re.finditer('[a-zA-Z_][a-zA-Z0-9_]*\[',codeSnip)
+        tempSnip = codeSnip
+        for i in validarr:
+            start = i.start()
+            end=  self.__brackets[(i.end()-1,codeSnip[i.end()-1])][0]
+            l = 0
+            for s,e in self.__dataMap:
+                if start >= s and start < e:
+                    l=1
+                    break
+            if l:
+                continue
+            
+            print(codeSnip[start:end+1])
+            
+            tempSnip = tempSnip.replace(codeSnip[start:end+1],codeSnip[start:i.end()]+str(random.randint(10**9,10**11))+codeSnip[end])
+            
+        codeSnip = tempSnip
+        
+        return codeSnip
+            
+            
+        
             
             
 
 
 exc = ExceptionInducer()
-with open('add.cpp', 'r+') as rfile:
+with open('../test_codes/test_add.cpp', 'r+') as rfile:
     exc = ExceptionInducer()
     code = rfile.read()
-    codeSnip = exc.sqrtExc(code)
-    with open('add2.cpp','w+') as wfile:
+    codeSnip = exc.induceArrayOutOfRange(code)
+    with open('../test_codes/E_test_add.cpp','w+') as wfile:
         wfile.write(codeSnip)
 
 # with open('testcode3.cpp','r+') as rfile:
