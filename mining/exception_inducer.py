@@ -1,17 +1,8 @@
-import csv
-import subprocess
-import os
 import random
 import re
 
-# [a-zA-Z_][a-zA-Z0-9_]*\[.*\]
-# (\bint\b|\bchar\b|\bfloat\b|\bbool\b)\s+[a-zA-Z_][a-zA-Z0-9_]*\[
-#two ways 1) find declaration and change size to 0
-# 2) find the array and access element out of bound
-
-
 class ExceptionInducer:
-
+    
     def __init__(self,noOfExc = 1):
         self.noOfExc = noOfExc
 
@@ -46,13 +37,14 @@ class ExceptionInducer:
     
     def __searchKeyword(self, codeSnip):
         self.__dataMap = []
-        print(codeSnip)
-        searchDatatype = re.finditer('[\( ](int|bool|float|double|char\b)\s',codeSnip)
+        # print(codeSnip)
+        searchDatatype = re.finditer('((\(|\s)+(int|char|bool|float)|^(int|char|bool|float))\s+',codeSnip)
         # print(list(searchDatatype))
         for i in searchDatatype:
             end = i.end()
             while codeSnip[end] != ";":
                 end+=1
+            # print(codeSnip[i.end():end])
             self.__dataMap.append((i.end(),end))
                                     
     def sqrtExc(self, codeSnip): 
@@ -135,7 +127,7 @@ class ExceptionInducer:
     def induceArrayOutOfRange(self,codeSnip):
         self.__searchKeyword(codeSnip)
         isBalanced = self.__checkParanthesis(codeSnip)
-        print(self.__brackets)
+        # print(self.__dataMap)
         if(not isBalanced[0]):
             print("Error:" + isBalanced[-1])
             exit(1)
@@ -154,7 +146,7 @@ class ExceptionInducer:
             if l:
                 continue
             
-            print(codeSnip[start:end+1])
+            # print(codeSnip[start:end+1])
             
             tempSnip = tempSnip.replace(codeSnip[start:end+1],codeSnip[start:i.end()]+str(random.randint(10**9,10**11))+codeSnip[end])
             
@@ -162,18 +154,14 @@ class ExceptionInducer:
         
         return codeSnip
             
-            
-        
-            
-            
-
+                     
 
 exc = ExceptionInducer()
-with open('../test_codes/test_add.cpp', 'r+') as rfile:
+with open('testcode3.cpp', 'r+') as rfile:
     exc = ExceptionInducer()
     code = rfile.read()
     codeSnip = exc.induceArrayOutOfRange(code)
-    with open('../test_codes/E_test_add.cpp','w+') as wfile:
+    with open('newtestcode3.cpp','w+') as wfile:
         wfile.write(codeSnip)
 
 # with open('testcode3.cpp','r+') as rfile:
