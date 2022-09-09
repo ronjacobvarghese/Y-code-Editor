@@ -1,64 +1,80 @@
 import code
 import re
 
+    
+
 class errors:
 
-    def __init__(self,filename):
-        self.filename=filename
-
-    def fileopen(self):
-        with open (self.filename,'r',encoding='utf-8') as f:
-            codesnip = f.readlines()
+    def fileOpen(self,filename):
+        with open (filename,'r',encoding='utf-8') as f:
+            self.codeSnip = f.readlines()
             f.close()
-            return codesnip
             
-    def filewrite(self,codesnip,newfile):
-        with open(newfile,"w",encoding='utf-8') as f:
-            f.seek(0)
-            f.write("".join(codesnip))
+    def __fileWrite__(self, errorSnip, error,no):
+        with open(f'../../test_codes/E_test_{error}_{no}',"w",encoding='utf-8') as f:
+            f.write("".join(errorSnip))
             f.close()
+            
 
 
-    def emptyLoop(self,codesnip,t=2):
-        a=["while","for"]
-        for i in range(len(codesnip)):
-            # if "while" in codesnip[i]:
-            if any(x in codesnip[i] for x in a):    
-                tmp = list(codesnip[i])
-                
-                for j in range(len(tmp)):
-                    if tmp[j]==")":
-                        tmp=tmp[0:j+1]+[";"]+tmp[j+1:]
-                        break
-                print(tmp)
-                print(i)
-                codesnip.pop(i)
-                codesnip.insert(i,"".join(tmp))
-                t-=1
-            if t==0:
-                return codesnip    
-        print("".join(codesnip))
-        return codesnip
+    def emptyLoop(self, perFileError = 10, noOfErr = 20):
+        itr = 0;filePtr = 0
+        n = len(self.codeSnip)
+        while noOfErr and filePtr != n: 
+            code = self.codeSnip.copy()
+            a=["while","for"]
+            edit = 0
+            tempFileError = perFileError
+            for i in range(filePtr,len(code)):
+                filePtr = i+1
+                # if "while" in code[i]:
+                if any(x in code[i] for x in a):
+                    edit = 1    
+                    tmp = list(code[i])
+                    
+                    for j in range(len(tmp)):
+                        if tmp[j]==")":
+                            tmp=tmp[0:j+1]+[";"]+tmp[j+1:]
+                            break
+                    code.pop(i)
+                    code.insert(i,"".join(tmp))
+                    noOfErr -= 1
+                    tempFileError -= 1
+                if not tempFileError:
+                    itr+=1
+                    break
+            if edit:
+                self.__fileWrite__(code,"EmptyLoop",itr);
+            
+            
+    
+    def removeReturn(self,codeSnip,noOfErr = 2):
+        codeSnip = codeSnip.readlines()
+        pass
+    
 
-    def equalityComparisontoAssignment(self,codesnip,t=2):
-        for i in range(len(codesnip)):
-            if "if" in codesnip[i]:
-                # tmp=list(codesnip[i])
-                # index=codesnip.find("==")
-                # print(index)
-                tmp=codesnip[i].split()
-                print(tmp)
-                for j in range(len(tmp)):
-                    if "==" in tmp[j]:
-                        index=tmp[j].find("==")
-                        tmp[j]=tmp[j][:index]+tmp[j][index+1:]+'\n'        
-                codesnip.pop(i)
-                codesnip.insert(i," ".join(tmp))
-                t-=1
-            if t==0:
-                return codesnip
-        print("".join(codesnip))
-        return codesnip
+    def equalityComparisontoAssignment(self, perFileError = 10, noOfErr = 20):
+        itr = 0;filePtr = 0
+        n = len(self.codeSnip)
+        while noOfErr and filePtr != n:
+            for i in range(len(codesnip)):
+                if "if" in codesnip[i]:
+                    # tmp=list(codesnip[i])
+                    # index=codesnip.find("==")
+                    # print(index)
+                    tmp=codesnip[i].split()
+                    print(tmp)
+                    for j in range(len(tmp)):
+                        if "==" in tmp[j]:
+                            index=tmp[j].find("==")
+                            tmp[j]=tmp[j][:index]+tmp[j][index+1:]+'\n'        
+                    codesnip.pop(i)
+                    codesnip.insert(i," ".join(tmp))
+                    t-=1
+                if t==0:
+                    return codesnip
+            print("".join(codesnip))
+            return codesnip
     
     # [+=,-=,/=,%=]
     def errors_in_assignment_operators(self,codesnip,t=2):
@@ -142,23 +158,22 @@ class errors:
                 print(codesnip[i])
 
 
-Err=errors("../../testcode/testcode_correct/testcode.cpp")
-codesnip=Err.fileopen()
-codesnip2=Err.emptyLoop(codesnip)
-Err.filewrite(codesnip2,"../../testcode/testcode_errors/testcode1.cpp")
+Err = errors()
+codesnip=Err.fileOpen("../../test_codes/test_add.cpp")
+codesnip2=Err.emptyLoop(1)
 
-codesnip=Err.fileopen()
-codesnip2=Err.equalityComparisontoAssignment(codesnip)
-Err.filewrite(codesnip2,"../../testcode/testcode_errors/testcode2.cpp")
+# codesnip=Err.fileopen()
+# codesnip2=Err.equalityComparisontoAssignment(codesnip)
+# Err.filewrite(codesnip2,"../../testcode/testcode_errors/testcode2.cpp")
 
-codesnip=Err.fileopen()
-codesnip2=Err.errors_in_assignment_operators(codesnip)
-Err.filewrite(codesnip2,"../../testcode/testcode_errors/testcode3.cpp")
+# codesnip=Err.fileopen()
+# codesnip2=Err.errors_in_assignment_operators(codesnip)
+# Err.filewrite(codesnip2,"../../testcode/testcode_errors/testcode3.cpp")
 
-codesnip=Err.fileopen()
-codesnip2=Err.left_assignment_to_right(codesnip)
-Err.filewrite(codesnip2,"../../testcode/testcode_errors/testcode4.cpp")
+# codesnip=Err.fileopen()
+# codesnip2=Err.left_assignment_to_right(codesnip)
+# Err.filewrite(codesnip2,"../../testcode/testcode_errors/testcode4.cpp")
 
-codesnip=Err.fileopen()
-codesnip2=Err.notypedeclaration(codesnip)
-Err.filewrite(codesnip2,"../../testcode/testcode_errors/testcode5.cpp")
+# codesnip=Err.fileopen()
+# codesnip2=Err.notypedeclaration(codesnip)
+# Err.filewrite(codesnip2,"../../testcode/testcode_errors/testcode5.cpp")
