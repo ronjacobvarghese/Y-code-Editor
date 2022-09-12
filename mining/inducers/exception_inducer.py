@@ -5,24 +5,22 @@ class ExceptionInducer:
 
     def fileOpen(self,fileName):
         with open(fileName, 'r+') as rfile:
-            self.codeSnip2 = rfile.readlines()
+            self.codeSnip = rfile.read()
             rfile.close()
-        with open(fileName, 'r+') as rfile:
-            self.codeSnip1 = rfile.read()
-            rfile.close()
-        print(self.codeSnip1,self.codeSnip2)
             
-        isBalanced = self.__checkParanthesis(self.codeSnip1)
+        isBalanced = self.__checkParanthesis(self.codeSnip)
         
         if(not isBalanced[0]):
             print("Error:" + isBalanced[-1])
             exit(1)
         else:
             print("Success: " + isBalanced[-1])
+            
+        self.__searchKeywords(self.codeSnip)
     
     
     def __fileWrite (self, excSnip, exc, itr):
-        with open(f'../../test_codes/X_test_{exc}_{itr}', 'w') as wfile:
+        with open(f'../../test_codes/tests/X_test_{exc}_{itr}', 'w') as wfile:
             wfile.write(excSnip)
             wfile.close()
         
@@ -58,27 +56,31 @@ class ExceptionInducer:
         return (True, "Brackets are Balanced!!")
     
     
-    def __searchKeyword(self, codeSnip):
-        self.__wordMap = []
-        print(codeSnip)
-        searchDatatype = re.finditer('[\( ](int|bool|float|double|char\b)\s',codeSnip)
+    def __searchKeywords(self, codeSnip):
+        self.__keywordsList = []
+        searchDatatype = re.finditer('(int|bool|float|double|char\b)\s',codeSnip)
         # print(list(searchDatatype))
         for i in searchDatatype:
-            end = i.end()
-            while codeSnip[end] != ";":
+            end = i.end();l = 0
+            while codeSnip[end] not in "(;":
+                if codeSnip[end] == '{':
+                    l = 1
+                    break
                 end+=1
-            self.__wordMap.append((i.end(),end))
+            if l:
+                continue
+            self.__keywordsList.append((i.end(),end))
+            
                                     
     def sqrtExc(self, perFileExceptions = 10, noOfExc = 20):
-        itr = 0; filePtr = 0; edit = 0
-        n = len(self.codeSnip1)
+        itr = 0; edit = 0
+        n = len(self.codeSnip)
         while noOfExc:
-            code = self.codeSnip1
+            code = self.codeSnip
             tempFileExceptions =perFileExceptions
             locSqrt = list(re.finditer('sqrt\(', code))
             tempSnip = code
-            for i in range(filePtr, len(locSqrt)):
-                filePtr = i+1
+            for i in range(len(locSqrt)):
                 sqrtPtr = locSqrt[i]
                 startPos = sqrtPtr.start()
                 endPos = self.__brackets[(startPos+4,code[startPos+4])][0]+1
@@ -86,119 +88,142 @@ class ExceptionInducer:
                 tempFileExceptions -=1
                 noOfExc -=1
                 edit = 1
-                if not tempFileExceptions or not noOfExc:
+                if not tempFileExceptions:
                     itr+=1
-                    break
+                    tempFileExceptions = perFileExceptions
+                    self.__fileWrite(tempSnip, "SqrtNeg",itr)
+                    tempSnip = code
+                    edit = 0
+                if not noOfExc:
+                    itr += 1
+                    self.__fileWrite(tempSnip, "SqrtNeg",itr)
+                    edit = 0
+                    return 
             if edit:
                 self.__fileWrite(tempSnip, "SqrtNeg",itr)
-            if filePtr == len(locSqrt):
-                break
 
     def indexExc(self, perFileExceptions = 10, noOfExc = 20):
-        itr = 0;filePtr = 0;
-        n = len(self.codeSnip2)
-        while noOfExc and filePtr != n:
+        itr = 0
+        while noOfExc:
             edit = 0
-            code = self.codeSnip2.copy()
+            code = self.codeSnip
             tempFileExceptions = perFileExceptions
-            for i in range(len(code)):
-                filePtr = i+1
-                validtype = True
-                for datatype in ['int','char','float','bool']:
-                    if datatype in code[i]:
-                        validtype = False
-                # validtype = re.search('(\s+(int|char|bool|float)|^(int|char|bool|float))\s+',code[i])
-                validarr = re.search('[a-zA-Z_][a-zA-Z0-9_]*\[',code[i])
-                if validtype and validarr:
-                    arrloc = re.finditer('[a-zA-Z_][a-zA-Z0-9_]*\[',code[i])
-                    for pos in arrloc:
-                        startpos = pos.end()
-                        endpos = self.__brackets[(startpos-1,code[i][startpos-1])][0]
-                        print(code[i][endpos])
-                        code[i] = code[i][:startpos]+str(random.randint(10**9,10**11))+code[i][endpos:]
-                        edit = 1
-                        tempFileExceptions -= 1
-                        noOfExc -=1
-                        if not tempFileExceptions:
-                            itr+=1
-                            self.__fileWrite(code, "indexOut",itr)
-                            tempFileExceptions = perFileExceptions
-                        if not noOfExc:
-                            itr+=1
-                            self.__fileWrite(code, "indexOut", itr)
-                            return
+            tempCode = code
+            arrloc = re.finditer('[a-zA-Z_][a-zA-Z0-9_]*\[',code)
+            for pos in arrloc:
+                startpos = pos.start();l = 0
+                endpos = self.__brackets[(pos.end()-1,code[pos.end()-1])][0]
+                for s,e in self.__keywordsList:
+                    if startpos >= s and endpos < e:
+                        l = 1
+                if l:
+                    continue
+                tempCode = tempCode.replace(code[startpos:endpos+1],f'{code[startpos:pos.end()]}{random.randint(10**9,10**11)}]')
+                edit = 1
+                tempFileExceptions -= 1
+                noOfExc -=1
+                if not tempFileExceptions:
+                    itr+=1
+                    self.__fileWrite(tempCode, "indexOut",itr)
+                    tempFileExceptions = perFileExceptions
+                    tempCode = code
+                    edit = 0
+                if not noOfExc:
+                    itr+=1
+                    self.__fileWrite(tempCode, "indexOut", itr)
+                    edit = 0
+                    return
             if edit:
                 itr+=1
-                self.__fileWrite(code, "indexOut", itr)
+                self.__fileWrite(tempCode, "indexOut", itr)
+            break
                             
     
             
-    def dividebyzero(self, codeSnip):
-        for i in range(len(codeSnip)):
-            isBalanced = self.__checkParanthesis(codeSnip[i])
-            if(not isBalanced[0]):
-                print("Error:" + isBalanced[-1])
-                exit(1)
-            else:
-                print("Success: " + isBalanced[-1])
-            print(self.__brackets)
-            print(codeSnip[i])
-            if 'cout' in codeSnip[i]:
-                codeSnip[i] = '\tcout<<{}/0;\n'.format(i)
-            print(codeSnip[i])
-        return codeSnip
+    def dividebyzero(self, perFileExceptions = 10, noOfExc = 20):
+        itr = 0
+        n = len(self.codeSnip)
+        while noOfExc:
+            edit = 0
+            code = self.codeSnip
+            tempFileExceptions = perFileExceptions
+            locCout = re.finditer('cout', code)
+            for pos in locCout:
+                startpos = pos.start()
+                while self.codeSnip[startpos] != '<':
+                    startpos+=1
+                startpos+=2
+                endpos = startpos
+                while self.codeSnip[endpos] not in "<;":
+                    endpos+=1
+                code = code.replace(self.codeSnip[pos.start():endpos],f'{self.codeSnip[pos.start():startpos]}{self.codeSnip[startpos:endpos].strip()}/0')
+                edit =1 
+                tempFileExceptions -=1
+                noOfExc -=1
+                if not tempFileExceptions:
+                    itr +=1
+                    self.__fileWrite(code, "divideByZero", itr)
+                    tempFileExceptions = perFileExceptions
+                    code = self.codeSnip
+                    edit= 0
+                if not noOfExc:
+                    itr +=1
+                    self.__fileWrite(code, "divideByZero", itr)
+                    edit = 0
+                    return 
+            if edit:
+                itr +=1
+                self.__fileWrite(code, "divideByZero", itr)
+            break
+                
+                    
 
-    def error_funcName(self, codeSnip):
-        for i in range(len(codeSnip)):
-            isBalanced = self.__checkParanthesis(codeSnip[i])
-            if(not isBalanced[0]):
-                print("Error:" + isBalanced[-1])
-                exit(1)
-            else:
-                print("Success: " + isBalanced[-1])
-            print(self.__brackets)
-            print(codeSnip[i])
-            locFunc = re.finditer('[a-zA-Z_][a-zA-Z0-9_]*\(', codeSnip[i])
+    def error_funcName(self, perFileExceptions = 10, noOfExc = 20):
+        itr = 0
+        while noOfExc:
+            edit = 0
+            code = self.codeSnip
+            tempFileExceptions = perFileExceptions
+            locFunc = set(re.finditer('[a-zA-Z_][a-zA-Z0-9_]*\(', code))
             for pos in locFunc:
-                codeSnip[i] = codeSnip[i][:pos.start()]+codeSnip[i][pos.start():pos.end()].swapcase()+codeSnip[i][pos.end():]
-            print(codeSnip[i])
-        return codeSnip
+                startpos = pos.start()
+                endpos = pos.end() - 1
+
+                l = 0
+                for start,end in self.__keywordsList:
+                    
+                    if startpos>= start and endpos <= end:
+                            l = 1
+                if l:
+                    continue
+                sp = startpos + random.randint(0,endpos-startpos)
+                while self.codeSnip[endpos] != ')':
+                    endpos+=1
+                code = code.replace(self.codeSnip[startpos:endpos],f'{self.codeSnip[startpos:sp]}{self.codeSnip[sp].swapcase()}{self.codeSnip[sp+1:endpos]}')
+                edit =1 
+                tempFileExceptions -=1
+                noOfExc -=1
+                if not tempFileExceptions:
+                     itr +=1
+                     self.__fileWrite(code, "wrongFunc", itr)
+                     tempFileExceptions = perFileExceptions
+                     code = self.codeSnip
+                     edit = 0
+                if not noOfExc:
+                    itr += 1
+                    self.__fileWrite(code, "wrongFunc", itr)
+                    edit = 0
+                    return
+            if edit:
+                itr+=1
+                self.__fileWrite(code, "wrongFunc", itr)
+            break
     
-    def induceArrayOutOfRange(self,codeSnip):
-        self.__searchKeyword(codeSnip)
-        isBalanced = self.__checkParanthesis(codeSnip)
-        # print(self.__dataMap)
-        if(not isBalanced[0]):
-            print("Error:" + isBalanced[-1])
-            exit(1)
-        else:
-            print("Success: " + isBalanced[-1])
-        validarr = re.finditer('[a-zA-Z_][a-zA-Z0-9_]*\[',codeSnip)
-        tempSnip = codeSnip
-        for i in validarr:
-            start = i.start()
-            end=  self.__brackets[(i.end()-1,codeSnip[i.end()-1])][0]
-            l = 0
-            for s,e in self.__wordMap:
-                if start >= s and start < e:
-                    l=1
-                    break
-            if l:
-                continue
-            
-            # print(codeSnip[start:end+1])
-            
-            tempSnip = tempSnip.replace(codeSnip[start:end+1],codeSnip[start:i.end()]+str(random.randint(10**9,10**11))+codeSnip[end])
-            
-        codeSnip = tempSnip
-        
-        return codeSnip
-            
-            
+                
         
             
             
 
 exc = ExceptionInducer()
 exc.fileOpen('../../test_codes/test_add.cpp')
-exc.indexExc(1)
+exc.error_funcName(1)
