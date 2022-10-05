@@ -1,24 +1,55 @@
-import code
 import re
 import shutil
 import os
+import random
 
 
 class errors:
 
+    def __init__(self, perFileError, noOfError):
+        self.perFileError = perFileError
+        self.noOfErr = noOfError
+
+    def genError(self):
+
+        error_types = [
+            self.emptyLoop,
+            self.removeReturn,
+            self.equalityComparisonToAssignment,
+            self.errors_in_assignment_operators,
+            self.left_assignment_to_right,
+            self.notypedeclaration,
+        ]
+        
+        self.edit = 0
+        no_of_errors = len(error_types)
+        tempFileError = self.perFileError
+        self.code = self.codeSnip
+        itr = 0
+        while self.noOfErr:
+            error_types[random.randint(0, no_of_errors-1)]()
+            if self.edit:
+                tempFileError -= 1
+                self.edit = 0
+                self.noOfErr -=1
+            if not tempFileError:
+                itr+=1
+                self.__fileWrite(self.code,"Error",itr)
+                self.code = self.codeSnip
+                tempFileError = self.perFileError
+                
+                
     def fileOpen(self, filename):
         if os.path.exists('../../test_codes/tests'):
             shutil.rmtree('../../test_codes/tests')
         os.mkdir('../../test_codes/tests')
         with open(filename, 'r', encoding='utf-8') as f:
-            self.codeSnip1 = f.read()
-            f.close()
-        with open(filename, 'r', encoding='utf-8') as f:
-            self.codeSnip2 = f.readlines()
+            self.codeSnip = f.read()
             f.close()
 
-        self.__detectOperators(self.codeSnip1)
-        self.__searchKeywords(self.codeSnip1)
+        self.__detectOperators(self.codeSnip)
+        self.__searchDatatype(self.codeSnip)
+        self.__searchKeywords(self.codeSnip)
 
     def __fileWrite(self, errorSnip, error, no):
         with open(f'../../test_codes/tests/E_test_{error}_{no}', "w", encoding='utf-8') as f:
@@ -33,139 +64,116 @@ class errors:
             endPos = pos.end()
             self.__operatorsList.append((startPos, endPos))
         # print(self.__operatorsList)
-        
-    def __searchKeywords(self, codeSnip):
-        self.__keywordsList = []
+
+    def __searchDatatype(self, codeSnip):
+        self.__datatypeList = []
         searchDatatype = re.finditer(
-            '(int|bool|float|double|char\b)\s', codeSnip)
+            '(\s|;)(int|bool|float|double|char)\s', codeSnip)
         # print(list(searchDatatype))
         for i in searchDatatype:
             end = i.end()
             l = 0
-            while codeSnip[end] not in "(;":
+            while codeSnip[end] not in ";":
                 if codeSnip[end] == '{':
                     l = 1
                     break
                 end += 1
             if l:
                 continue
-            self.__keywordsList.append((i.end(), end))
+            self.__datatypeList.append((i.end(), end))
+        
 
-    def emptyLoop(self, perFileError=10, noOfErr=20):
-        itr = 0
-        filePtr = 0
-        n = len(self.codeSnip)
-        while noOfErr and filePtr != n:
-            code = self.codeSnip.copy()
-            a = ["while", "for"]
-            edit = 0
-            tempFileError = perFileError
+    def __searchKeywords(self, codeSnip):
+        self.__findKeywords = []
+        searchReturn = re.finditer(
+            '(\s|;)(return\s|for\(|for \(|while\(|while \()', codeSnip)
+        for i in searchReturn:
+            self.__findKeywords.append((i.start()+1, i.end()))
 
-            for i in range(filePtr, len(code)):
-                filePtr = i+1
-                # if "while" in code[i]:
-                if any(x in code[i] for x in a):
-                    edit = 1
-                    tmp = list(code[i])
+    def emptyLoop(self):
+        findKeywords = [(start, end) for start,
+                        end in self.__findKeywords if self.codeSnip[end-1] == "("]
+        n = len(findKeywords)
+        if not n:
+            print("error not found in emtpy loop")
+            return
+        start, end = findKeywords[random.randint(0, n-1)]
+        startPos = end
+        while self.codeSnip[startPos] != "{":
+            startPos += 1
+        endPos = startPos
+        while self.codeSnip[endPos] != "}":
+            endPos += 1
+        self.code = self.code.replace(self.codeSnip[startPos:endPos+1], "")
+        self.edit = 1
+        print("Empty Loop: Success")
 
-                    for j in range(len(tmp)):
-                        if tmp[j] == ")":
-                            tmp = tmp[0:j+1]+[";"]+tmp[j+1:]
-                            break
-                    code.pop(i)
-                    code.insert(i, "".join(tmp))
-                    noOfErr -= 1
-                    tempFileError -= 1
-                if not tempFileError:
-                    itr += 1
-                    break
-            if edit:
-                self.__fileWrite(code, "EmptyLoop", itr)
+    def removeReturn(self):
+        findKeywords = [(start, end) for start,
+                        end in self.__findKeywords if self.codeSnip[start:end-1] == "return"]
+        n = len(findKeywords)
+        if not n:
+            print("Error not found in removeReturn")
+            return
+        start, end = findKeywords[random.randint(0, n-1)]
+        startPos = start
+        while self.codeSnip[startPos] not in "{;":
+            startPos -= 1
+        startPos += 1
+        endPos = end
+        while self.codeSnip[endPos] not in "{;":
+            endPos += 1
+        self.code = self.code.replace(self.codeSnip[startPos:endPos+1], "")
+        self.edit = 1
+        print("Remove Return:Success")
 
-    def removeReturn(self, codeSnip, noOfErr=2):
-        codeSnip = codeSnip.readlines()
-        pass
+    def equalityComparisonToAssignment(self):
+        operatorsList = [(start, end) for start,
+                         end in self.__operatorsList if self.codeSnip[start:end] == "=="]
+        n = len(operatorsList)
+        if not n:
+            print("Error not found in equality Comparison To assignment.")
+            return
+        start, end = operatorsList[random.randint(0, n-1)]
+        startPos = start
+        while self.codeSnip[startPos] not in "{;":
+            startPos -= 1
 
-    def equalityComparisonToAssignment(self, perFileError=10, noOfErr=20):
-        itr = 0
-        code = self.codeSnip1
-        tempFileErrors = perFileError
-        edit = 0
-        for start, end in self.__operatorsList:
-            if self.codeSnip1[start:end] != "==":
-                continue
-            startPos = start
-            while self.codeSnip1[startPos] not in ";":
-                startPos -= 1
+        endPos = end
+        while self.code[endPos] != ";":
+            endPos += 1
 
-            endPos = end
-            while code[endPos] != ";":
-                endPos += 1
-
-            code = code.replace(
-                self.codeSnip1[startPos:endPos], f'{self.codeSnip1[startPos:end-1]}{self.codeSnip1[end:endPos]}')
-            tempFileErrors -= 1
-            noOfErr -= 1
-            edit = 1
-            if not tempFileErrors:
-                itr += 1
-                tempFileErrors = perFileError
-                self.__fileWrite(code, "compErr", itr)
-                code = self.codeSnip1
-                edit = 0
-            if not noOfErr:
-                itr += 1
-                self.__fileWrite(code, 'compErr', itr)
-                edit = 0
-                return
-        if edit:
-            itr += 1
-            self.__fileWrite(code, "compErr", itr)
+        self.code = self.code.replace(
+            self.codeSnip[startPos:endPos], f'{self.codeSnip[startPos:end-1]}{self.codeSnip[end:endPos]}')
+        self.edit = 1
+        print("Equality Comparison To Assignments:Success")
 
     # [+=,-=,/=,%=]
-    def errors_in_assignment_operators(self, perFileErrors, noOfErr=20):
-        itr = 0
-        code = self.codeSnip1
-        tempFileErrors = perFileErrors
-        edit = 0
-        for start, end in self.__operatorsList:
-            if self.codeSnip1[start:end] not in ["*=", "/="]:
-                continue
-            startPos = start
-            while self.codeSnip1[startPos] not in ";{":
-                startPos -= 1
-            endPos = end
-            while self.codeSnip1[endPos] != ";":
-                endPos += 1
-            code = code.replace(
-                self.codeSnip1[startPos:endPos], f"{self.codeSnip1[startPos:start]} {self.codeSnip1[end-1]}{self.codeSnip1[start]} {self.codeSnip1[end:endPos]} ")
-            tempFileErrors -= 1
-            noOfErr -= 1
-            edit = 1
-            if not tempFileErrors:
-                itr += 1
-                tempFileErrors = perFileErrors
-                self.__fileWrite(code, "assignErr", itr)
-                code = self.codeSnip1
-                edit = 0
-            if not noOfErr:
-                itr += 1
-                self.__fileWrite(code, "assignErr", itr)
-                edit = 0
-                return
-        if edit:
-            itr += 1
-            self.__fileWrite(code, "assignErr", itr)
+    def errors_in_assignment_operators(self):
+        operatorList = [(start, end) for start,
+                        end in self.__operatorsList if self.codeSnip[start:end] not in ["*=", "/=", "=="]]
+        n = len(operatorList)
+        if not n:
+            print("Error not found in errors in assignments operators.")
+            return
+        start, end = operatorList[random.randint(0, n-1)]
+        startPos = start
+        while self.codeSnip[startPos] not in ";{":
+            startPos -= 1
+        endPos = end
+        while self.codeSnip[endPos] != ";":
+            endPos += 1
+        self.code = self.code.replace(
+            self.codeSnip[startPos:endPos], f"{self.codeSnip[startPos:start]} {self.codeSnip[end-1]}{self.codeSnip[start]} {self.codeSnip[end:endPos]} ")
+        self.edit = 1
+        print("Errors In Assigment Operators: Success")
 
-    def left_assignment_to_right(self, perFileErrors, noOfErr = 20):
-        itr = 0
-        code =self.codeSnip1
-        tempFileErrors = perFileErrors
-        edit = 0
-        equalLoc = re.finditer("=", self.codeSnip1)
+    def left_assignment_to_right(self):
+        equalLoc = re.finditer("=", self.codeSnip)
+        operatorsList = []
         for pos in equalLoc:
             l = 0
-            for start,end in self.__operatorsList:
+            for start, end in self.__operatorsList:
                 if pos.start() >= start and pos.end() <= end:
                     l = 1
                     break
@@ -173,71 +181,48 @@ class errors:
                 continue
             startPos = pos.start()
             l = 0
-            while self.codeSnip1[startPos] not in "{;":
+            while self.codeSnip[startPos] not in "{;":
                 startPos -= 1
-            startPos +=1
+            startPos += 1
             endPos = pos.end()
-            while self.codeSnip1[endPos] not in ";":
-                if self.codeSnip1[endPos] in "+" and self.codeSnip1[endPos+1] != "+":
+            while self.codeSnip[endPos] not in "{;":
+                if self.codeSnip[endPos] in "+" and self.codeSnip[endPos+1] != "+":
                     l = 1
-                if self.codeSnip1[endPos] in "-" and self.codeSnip1[endPos+1] != "-":
-                    l  = 1
-                if self.codeSnip1[endPos] in "*/":
+                if self.codeSnip[endPos] in "-" and self.codeSnip[endPos+1] != "-":
                     l = 1
-                endPos +=1    
+                if self.codeSnip[endPos] in "*/":
+                    l = 1
+                endPos += 1
             if not l:
                 continue
-            code = code.replace(self.codeSnip1[startPos:endPos], f"{self.codeSnip1[pos.end():endPos]} = {self.codeSnip1[startPos:pos.start()]}")
-            tempFileErrors -=1
-            noOfErr -=1
-            edit = 1
-            if not tempFileErrors:
-                itr +=1
-                tempFileErrors = perFileErrors
-                self.__fileWrite(code,"invertAssign",itr)
-                code = self.codeSnip1
-                edit  = 0
-            if not noOfErr:
-                itr +=1
-                self.__fileWrite(code, "invertAssign", itr)
-                edit = 0
-                return
-        if edit:
-            itr +=1
-            self.__fileWrite(code, "inertAssign", itr)
-            
+            else:
+                operatorsList.append((startPos, endPos,pos.start(),pos.end()))
+        n = len(operatorsList)
+        if not n:
+            print("Error not found in left assignment to right.")
+            return
+        startPos, endPos , start, end= operatorsList[random.randint(0, n-1)]
+        self.code = self.code.replace(
+            self.codeSnip[startPos:endPos], f"{self.codeSnip[end:endPos]} = {self.codeSnip[startPos:start]}")
+        self.edit = 1
+        print("Left Assignment to Right: Success")
 
-    def notypedeclaration(self, perFileErrors, noOfErr = 20):
-        itr  = 0
-        code = self.codeSnip1
-        tempFileErrors = perFileErrors
-        edit = 0
-        for start, end in self.__keywordsList:
-            startPos = start
-            while self.codeSnip1[startPos] not in "{;":
-                startPos -=1
-            endPos = end
-            while self.codeSnip1[endPos] != ";":
-                endPos+=1
-            code = code.replace(self.codeSnip1[startPos:endPos],self.codeSnip1[start:endPos])
-            tempFileErrors -=1
-            noOfErr -=1
-            edit = 1
-            if not tempFileErrors:
-                itr +=1
-                tempFileErrors = perFileErrors
-                self.__fileWrite(code,"notDec",itr)
-                code = self.codeSnip1
-                edit = 0
-            if not noOfErr:
-                itr +=1
-                self.__fileWrite(code,"notDec",itr)
-                edit = 0
-                return 
-        if edit:
-            itr +=1
-            self.__fileWrite(code,"notDec",itr)
-            
+    def notypedeclaration(self):
+        n = len(self.__datatypeList)
+        if not n:
+            print("Error not found in no type declaration.")
+        start,end = self.__datatypeList[random.randint(0,n-1)]
+        startPos = start
+        while self.codeSnip[startPos] not in "{;":
+            startPos -= 1
+        startPos +=2
+        endPos = end
+        while self.codeSnip[endPos] != ";":
+            endPos += 1
+        self.code = self.code.replace(
+            self.codeSnip[startPos:endPos], self.codeSnip[start:endPos])
+        self.edit = 1
+        print("No Type Declaration:Success")
 
     def else_if_concatenate(self, codesnip, t=2):
         for i in range(len(codesnip)):
@@ -245,9 +230,9 @@ class errors:
                 print(codesnip[i])
 
 
-Err = errors()
-codesnip = Err.fileOpen("../../test_codes/test_add.cpp")
-Err.notypedeclaration(1)
+Err = errors(1, 6)
+Err.fileOpen("../../test_codes/test_add.cpp")
+Err.genError()
 
 # codesnip=Err.fileopen()
 # codesnip2=Err.equalityComparisontoAssignment(codesnip)
