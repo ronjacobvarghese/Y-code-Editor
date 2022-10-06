@@ -2,3 +2,8 @@ codeforces
 ./scraper/test.py
 testcode
 test_codes
+dataset
+mining/data_process/*.csv
+mining/data_process/*.cpp
+mining/data_process/*.h
+mining/data_process/*.pch.temp
