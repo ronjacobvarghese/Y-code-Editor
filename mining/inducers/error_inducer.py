@@ -3,13 +3,26 @@ import shutil
 import os
 import random
 import subprocess
-
+from ..data_process import generate_dataset as genData
+from datetime import datetime
 
 class errors:
 
     def __init__(self, perFileError, noOfError):
         self.perFileError = perFileError
         self.noOfErr = noOfError
+        self.emptyLoop_count = 0
+        self.removeReturn_count = 0
+        self.equalityComparisonToAssignment_count = 0
+        self.errors_in_assignment_operators_count = 0
+        self.left_assignment_to_right_count = 0
+        self.notypedeclaration_count = 0
+
+    def errorStats(self):
+        dateAndTime = datetime.now().strftime("%d/%m/%Y %H:%M:%S")
+        currErrorStats = f'emptyLoop_count = {self.emptyLoop_count}\n removeReturn_count = {self.removeReturn_count}\n equalityComparisonToAssignment_count = {self.equalityComparisonToAssignment_count}\n errors_in_assignment_operators_count = {self.errors_in_assignment_operators_count}\n left_assignment_to_right_count = {self.left_assignment_to_right_count}\n notypedeclaration_count = {self.notypedeclaration_count}\n'
+        with open('../../dataset/errorStats.txt','+a') as estat:
+            estat.write(currErrorStats+dateAndTime)
 
     def genError(self):
 
@@ -42,7 +55,8 @@ class errors:
                 if os.path.exists(f'../../dataset/{self.folderNo}/error_codes/{errorNo}'):
                     continue
                 self.__fileWrite(self.code, errorNo)
-                self.__genAst(self.code, errorNo)
+                gD = genData()
+                gD.createAST(f'../../dataset/records/{self.folderNo}/error_codes/{errorNo}/error.cpp',f'../../dataset/records/{self.folderNo}/error_codes/{errorNo}')
                 self.code = self.codeSnip
                 tempFileError = self.perFileError
                 print(
@@ -50,7 +64,7 @@ class errors:
 
     def fileOpen(self, folderNo):
         self.folderNo = folderNo
-        with open(f"../../dataset/{folderNo}/code.cpp", 'r', encoding='utf-8') as f:
+        with open(f"../../dataset/records/{folderNo}/code.cpp", 'r', encoding='utf-8') as f:
             self.codeSnip = f.read()
             f.close()
 
@@ -58,29 +72,29 @@ class errors:
         self.__searchDatatype(self.codeSnip)
         self.__searchKeywords(self.codeSnip)
 
-    def __genAst(self, errorSnip, errorNo):
-        codeFile = '#include "precompiled.h"\n'
-        headerFiles = []
-        print("folder: ", errorNo)
-        code = errorSnip
-        findHeader = re.finditer('[ ]*#\s*include\s*[\"<][^>\"]*[\">]', code)
-        tempCode = code
-        for pos in findHeader:
-            headerFiles.append(code[pos.start():pos.end()]+'\n')
-            tempCode = tempCode.replace(code[pos.start():pos.end()], "")
-        codeFile += tempCode
-        with open("precompiled.h", 'w+') as pFile:
-            pFile.writelines(headerFiles)
-        s = subprocess.run(
-            "clang -x c++-header precompiled.h -Xclang -emit-pch -o precompiled.h.pch", shell=True)
-        with open("temp.cpp", 'w+') as tempFile:
-            tempFile.write(codeFile)
-        s = subprocess.run(
-            f"clang -Xclang -ast-dump=json -fsyntax-only -Wno-register -include-pch precompiled.h.pch temp.cpp > ../../dataset/{self.folderNo}/error_codes/{errorNo}/error_ast.json", shell=True)
+    # def __genAst(self, errorSnip, errorNo):
+    #     codeFile = '#include "precompiled.h"\n'
+    #     headerFiles = []
+    #     print("folder: ", errorNo)
+    #     code = errorSnip
+    #     findHeader = re.finditer('[ ]*#\s*include\s*[\"<][^>\"]*[\">]', code)
+    #     tempCode = code
+    #     for pos in findHeader:
+    #         headerFiles.append(code[pos.start():pos.end()]+'\n')
+    #         tempCode = tempCode.replace(code[pos.start():pos.end()], "")
+    #     codeFile += tempCode
+    #     with open("precompiled.h", 'w+') as pFile:
+    #         pFile.writelines(headerFiles)
+    #     s = subprocess.run(
+    #         "clang -x c++-header precompiled.h -Xclang -emit-pch -o precompiled.h.pch", shell=True)
+    #     with open("temp.cpp", 'w+') as tempFile:
+    #         tempFile.write(codeFile)
+    #     s = subprocess.run(
+    #         f"clang -Xclang -ast-dump=json -fsyntax-only -Wno-register -include-pch precompiled.h.pch temp.cpp > ../../dataset/{self.folderNo}/error_codes/{errorNo}/error_ast.json", shell=True)
 
     def __fileWrite(self, errorSnip, folder):
-        os.mkdir(f'../../dataset/{self.folderNo}/error_codes/{folder}')
-        with open(f'../../dataset/{self.folderNo}/error_codes/{folder}/error.cpp', "w+", encoding='utf-8') as f:
+        os.mkdir(f'../../dataset/records/{self.folderNo}/error_codes/{folder}')
+        with open(f'../../dataset/records/{self.folderNo}/error_codes/{folder}/error.cpp', "w+", encoding='utf-8') as f:
             f.write("".join(errorSnip))
             f.close()
 
@@ -135,6 +149,7 @@ class errors:
             self.code = self.code.replace(self.codeSnip[startPos:endPos+1], "")
             self.edit = 1
             print("Empty Loop: Success")
+            self.emptyLoop_count += 1
         except:
             print("Empty Loop Process Failed")
             self.edit = 0
@@ -158,6 +173,7 @@ class errors:
             self.code = self.code.replace(self.codeSnip[startPos:endPos+1], "")
             self.edit = 1
             print("Remove Return:Success")
+            self.removeReturn_count += 1
         except:
             print("Remove Return Process Failed")
             self.edit = 0
@@ -183,6 +199,7 @@ class errors:
                 self.codeSnip[startPos:endPos], f'{self.codeSnip[startPos:end-1]}{self.codeSnip[end:endPos]}')
             self.edit = 1
             print("Equality Comparison To Assignments:Success")
+            self.equalityComparisonToAssignment_count += 1
         except:
             print("Equality Comparison TO assignment: Failed")
             self.edit = 0
@@ -206,6 +223,7 @@ class errors:
                 self.codeSnip[startPos:endPos], f"{self.codeSnip[startPos:start]} {self.codeSnip[end-1]}{self.codeSnip[start]} {self.codeSnip[end:endPos]} ")
             self.edit = 1
             print("Errors In Assigment Operators: Success")
+            self.errors_in_assignment_operators_count += 1
         except:
             print("Errors in Assignment Operator: Failed")
             self.edit = 0
@@ -251,6 +269,7 @@ class errors:
                 self.codeSnip[startPos:endPos], f"{self.codeSnip[end:endPos]} = {self.codeSnip[startPos:start]}")
             self.edit = 1
             print("Left Assignment to Right: Success")
+            self.left_assignment_to_right_count += 1
         except:
             print("Left Assignment to Right: Failed")
             self.edit = 0
@@ -272,6 +291,7 @@ class errors:
                 self.codeSnip[startPos:endPos], self.codeSnip[start:endPos])
             self.edit = 1
             print("No Type Declaration:Success")
+            self.notypedeclaration_count += 1
         except:
             print("No Type Declaration: Failed")
 
@@ -283,6 +303,11 @@ class errors:
 
 folders = os.listdir('../../dataset/')
 for i in folders:
-    Err = errors(1, 10)
-    Err.fileOpen(i)
-    Err.genError()
+    try:
+        Err = errors(1, 10)
+        Err.fileOpen(i)
+        Err.genError()
+    except KeyboardInterrupt:
+        print("some keyboard interrupt")
+        Err.errorStats()
+
