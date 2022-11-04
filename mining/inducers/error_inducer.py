@@ -3,7 +3,7 @@ import shutil
 import os
 import random
 import subprocess
-from ..data_process import generate_dataset as genData
+from ..data_process.generate_dataset import generate_dataset as genData
 from datetime import datetime
 
 class errors:
@@ -21,7 +21,7 @@ class errors:
     def errorStats(self):
         dateAndTime = datetime.now().strftime("%d/%m/%Y %H:%M:%S")
         currErrorStats = f'emptyLoop_count = {self.emptyLoop_count}\n removeReturn_count = {self.removeReturn_count}\n equalityComparisonToAssignment_count = {self.equalityComparisonToAssignment_count}\n errors_in_assignment_operators_count = {self.errors_in_assignment_operators_count}\n left_assignment_to_right_count = {self.left_assignment_to_right_count}\n notypedeclaration_count = {self.notypedeclaration_count}\n'
-        with open('../../dataset/errorStats.txt','+a') as estat:
+        with open('dataset/errorStats.txt','+a') as estat:
             estat.write(currErrorStats+dateAndTime)
 
     def genError(self):
@@ -41,6 +41,7 @@ class errors:
         self.code = self.codeSnip
         errorNo = 0
         while self.noOfErr and itr != 50:
+            print
             error_types[random.randint(0, no_of_errors-1)]()
             if self.edit:
                 tempFileError -= 1
@@ -50,13 +51,13 @@ class errors:
                 itr += 1
             if not tempFileError:
                 errorNo += 1
-                if not os.path.exists(f'../../dataset/{self.folderNo}/error_codes'):
-                    os.mkdir(f'../../dataset/{self.folderNo}/error_codes')
-                if os.path.exists(f'../../dataset/{self.folderNo}/error_codes/{errorNo}'):
+                if not os.path.exists(f'dataset/records/{self.folderNo}/error_codes'):
+                    os.mkdir(f'dataset/records/{self.folderNo}/error_codes')
+                if os.path.exists(f'dataset/{self.folderNo}/error_codes/{errorNo}'):
                     continue
                 self.__fileWrite(self.code, errorNo)
                 gD = genData()
-                gD.createAST(f'../../dataset/records/{self.folderNo}/error_codes/{errorNo}/error.cpp',f'../../dataset/records/{self.folderNo}/error_codes/{errorNo}')
+                gD.createAST(f'dataset/records/{self.folderNo}/error_codes/{errorNo}/error.cpp',f'dataset/records/{self.folderNo}/error_codes/{errorNo}',errorNo)
                 self.code = self.codeSnip
                 tempFileError = self.perFileError
                 print(
@@ -64,7 +65,7 @@ class errors:
 
     def fileOpen(self, folderNo):
         self.folderNo = folderNo
-        with open(f"../../dataset/records/{folderNo}/code.cpp", 'r', encoding='utf-8') as f:
+        with open(f"dataset/records/{folderNo}/code.cpp", 'r', encoding='utf-8') as f:
             self.codeSnip = f.read()
             f.close()
 
@@ -93,8 +94,11 @@ class errors:
     #         f"clang -Xclang -ast-dump=json -fsyntax-only -Wno-register -include-pch precompiled.h.pch temp.cpp > ../../dataset/{self.folderNo}/error_codes/{errorNo}/error_ast.json", shell=True)
 
     def __fileWrite(self, errorSnip, folder):
-        os.mkdir(f'../../dataset/records/{self.folderNo}/error_codes/{folder}')
-        with open(f'../../dataset/records/{self.folderNo}/error_codes/{folder}/error.cpp', "w+", encoding='utf-8') as f:
+        if os.path.exists(f'dataset/records/{self.folderNo}/error_codes/{folder}'):
+            print("Error Already Exists")
+            return
+        os.mkdir(f'dataset/records/{self.folderNo}/error_codes/{folder}')
+        with open(f'dataset/records/{self.folderNo}/error_codes/{folder}/error.cpp', "w+", encoding='utf-8') as f:
             f.write("".join(errorSnip))
             f.close()
 
@@ -301,7 +305,8 @@ class errors:
                 print(codesnip[i])
 
 
-folders = os.listdir('../../dataset/')
+
+folders = os.listdir('dataset/records')
 for i in folders:
     try:
         Err = errors(1, 10)
