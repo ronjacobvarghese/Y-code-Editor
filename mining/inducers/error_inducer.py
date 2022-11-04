@@ -5,6 +5,7 @@ import random
 import subprocess
 from ..data_process.generate_dataset import generate_dataset as genData
 from datetime import datetime
+import csv
 
 class errors:
 
@@ -18,11 +19,10 @@ class errors:
         self.left_assignment_to_right_count = 0
         self.notypedeclaration_count = 0
 
-    def errorStats(self):
-        dateAndTime = datetime.now().strftime("%d/%m/%Y %H:%M:%S")
-        currErrorStats = f'emptyLoop_count = {self.emptyLoop_count}\n removeReturn_count = {self.removeReturn_count}\n equalityComparisonToAssignment_count = {self.equalityComparisonToAssignment_count}\n errors_in_assignment_operators_count = {self.errors_in_assignment_operators_count}\n left_assignment_to_right_count = {self.left_assignment_to_right_count}\n notypedeclaration_count = {self.notypedeclaration_count}\n'
+    def errorStats(self,errString):
+        # dateAndTime = datetime.now().strftime("%d/%m/%Y %H:%M:%S")
         with open('dataset/errorStats.txt','+a') as estat:
-            estat.write(currErrorStats+dateAndTime)
+            estat.write(errString)
 
     def genError(self):
 
@@ -41,23 +41,31 @@ class errors:
         self.code = self.codeSnip
         errorNo = 0
         while self.noOfErr and itr != 50:
-            print
+            if not os.path.exists(f'dataset/records/{self.folderNo}/error_codes'):
+                    os.mkdir(f'dataset/records/{self.folderNo}/error_codes')
+            if os.path.exists(f'dataset/records/{self.folderNo}/error_codes/{errorNo}'):
+                    print("ron is an idioa")
+                    errorNo += 1
+                    self.noOfErr -= 1
+                    continue
             error_types[random.randint(0, no_of_errors-1)]()
             if self.edit:
                 tempFileError -= 1
                 self.edit = 0
-                self.noOfErr -= 1
             else:
                 itr += 1
             if not tempFileError:
-                errorNo += 1
                 if not os.path.exists(f'dataset/records/{self.folderNo}/error_codes'):
                     os.mkdir(f'dataset/records/{self.folderNo}/error_codes')
-                if os.path.exists(f'dataset/{self.folderNo}/error_codes/{errorNo}'):
+                if os.path.exists(f'dataset/records/{self.folderNo}/error_codes/{errorNo}'):
                     continue
                 self.__fileWrite(self.code, errorNo)
                 gD = genData()
                 gD.createAST(f'dataset/records/{self.folderNo}/error_codes/{errorNo}/error.cpp',f'dataset/records/{self.folderNo}/error_codes/{errorNo}',errorNo)
+                with open("dataset/err_msg.csv",'a+') as csvFile:
+                    err_msg_csv = csv.writer(csvFile)
+                    err_msg = subprocess.run("g++ tests/temp_err.cpp",capture_output=True,text=True,shell=True).stderr
+                    err_msg_csv.writerow([f'dataset/records/{self.folderNo}',f'dataset/records/{self.folderNo}/error_codes/{errorNo}',err_msg])
                 self.code = self.codeSnip
                 tempFileError = self.perFileError
                 print(
@@ -153,7 +161,7 @@ class errors:
             self.code = self.code.replace(self.codeSnip[startPos:endPos+1], "")
             self.edit = 1
             print("Empty Loop: Success")
-            self.emptyLoop_count += 1
+            self.errorStats('\nemptyLoop')
         except:
             print("Empty Loop Process Failed")
             self.edit = 0
@@ -177,7 +185,7 @@ class errors:
             self.code = self.code.replace(self.codeSnip[startPos:endPos+1], "")
             self.edit = 1
             print("Remove Return:Success")
-            self.removeReturn_count += 1
+            self.errorStats('\nremoveReturn')
         except:
             print("Remove Return Process Failed")
             self.edit = 0
@@ -203,7 +211,7 @@ class errors:
                 self.codeSnip[startPos:endPos], f'{self.codeSnip[startPos:end-1]}{self.codeSnip[end:endPos]}')
             self.edit = 1
             print("Equality Comparison To Assignments:Success")
-            self.equalityComparisonToAssignment_count += 1
+            self.errorStats('\nequalityComparisonToAssignment')
         except:
             print("Equality Comparison TO assignment: Failed")
             self.edit = 0
@@ -227,7 +235,7 @@ class errors:
                 self.codeSnip[startPos:endPos], f"{self.codeSnip[startPos:start]} {self.codeSnip[end-1]}{self.codeSnip[start]} {self.codeSnip[end:endPos]} ")
             self.edit = 1
             print("Errors In Assigment Operators: Success")
-            self.errors_in_assignment_operators_count += 1
+            self.errorStats('\nerrors_in_assignment_operators')
         except:
             print("Errors in Assignment Operator: Failed")
             self.edit = 0
@@ -273,7 +281,7 @@ class errors:
                 self.codeSnip[startPos:endPos], f"{self.codeSnip[end:endPos]} = {self.codeSnip[startPos:start]}")
             self.edit = 1
             print("Left Assignment to Right: Success")
-            self.left_assignment_to_right_count += 1
+            self.errorStats('\nleft_assignment_to_right_count')
         except:
             print("Left Assignment to Right: Failed")
             self.edit = 0
@@ -295,7 +303,7 @@ class errors:
                 self.codeSnip[startPos:endPos], self.codeSnip[start:endPos])
             self.edit = 1
             print("No Type Declaration:Success")
-            self.notypedeclaration_count += 1
+            self.errorStats('\nnotypedeclaration')
         except:
             print("No Type Declaration: Failed")
 
@@ -306,13 +314,8 @@ class errors:
 
 
 
-folders = os.listdir('dataset/records')
+folders = sorted(map(int,os.listdir('dataset/records')))
 for i in folders:
-    try:
-        Err = errors(1, 10)
-        Err.fileOpen(i)
-        Err.genError()
-    except KeyboardInterrupt:
-        print("some keyboard interrupt")
-        Err.errorStats()
-
+    Err = errors(1, 10)
+    Err.fileOpen(str(i))
+    Err.genError()

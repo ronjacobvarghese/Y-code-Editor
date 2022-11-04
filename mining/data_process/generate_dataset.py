@@ -30,14 +30,14 @@ class generate_dataset:
 
 
 
-    def createSampleCsv(self):
-        noOfCodes = 37243
-        with open("codeforces/code_snippets/code_snippets_OK.csv",'r+') as csvFile:
-            csvReader = csv.reader(csvFile)
-            for codeData in csvReader:
-                if noOfCodes==0:
-                    return
-                noOfCodes -= 1
+    # def createSampleCsv(self):
+    #     noOfCodes = 37243
+    #     with open("codeforces/code_snippets/code_snippets_OK.csv",'r+') as csvFile:
+    #         csvReader = csv.reader(csvFile)
+    #         for codeData in csvReader:
+    #             if noOfCodes==0:
+    #                 return
+    #             noOfCodes -= 1
 
 
     def workingCodeFilter(self,codeId, codeSnip):
@@ -48,7 +48,7 @@ class generate_dataset:
                 testId = testCase[0] + testCase[1]
                 if testId == codeId:
                     test = testCase[2]
-            with open("mining/data_process/tests/test_code.cpp",'w+') as cFile:
+            with open("tests/test_code.cpp",'w+') as cFile:
                     cFile.write(codeSnip)
                     
             data,temp = os.pipe()
@@ -79,7 +79,7 @@ class generate_dataset:
                     # print("codeNo: "+str(codeCounter))
             try:
                 try:
-                    s = subprocess.check_output("g++ mining/data_process/tests/test_code.cpp -o mining/data_process/tests/a.out; mining/data_process/tests/a.out", stdin=data, shell=True,timeout=5)
+                    s = subprocess.check_output("g++ tests/test_code.cpp -o tests/a.out; tests/a.out", stdin=data, shell=True,timeout=5)
                 except(subprocess.TimeoutExpired):
                     print("code time out")
                     self.wrongCodeCounter +=1
@@ -109,21 +109,23 @@ class generate_dataset:
             print("folder: ",folderNo)
             with open(readLoc,'r+') as cFile:
                 code = cFile.read()
+                with open("tests/temp_err.cpp",'w+') as errFile:
+                    errFile.write(code)
+                
                 findHeader = re.finditer('[ ]*#\s*include\s*[\"<][^>\"]*[\">]',code)
                 tempCode = code
                 for pos in findHeader:
                     headerFiles.append(code[pos.start():pos.end()]+'\n')
                     tempCode = tempCode.replace(code[pos.start():pos.end()],"")
                 codeFile+=tempCode
-            with open("mining/data_process/tests/precompiled.h",'w+') as pFile:
+            with open("tests/precompiled.h",'w+') as pFile:
                 pFile.writelines(headerFiles)
-            s = subprocess.run("clang -x c++-header mining/data_process/tests/precompiled.h -Xclang -emit-pch -o mining/data_process/tests/precompiled.h.pch",shell=True)
-            with open("mining/data_process/tests/temp.cpp",'w+') as tempFile:
+            s = subprocess.run("clang -x c++-header tests/precompiled.h -Xclang -emit-pch -o tests/precompiled.h.pch",shell=True)
+            with open("tests/temp.cpp",'w+') as tempFile:
                 tempFile.write(codeFile)
-            s = subprocess.run(f"clang -Xclang -ast-dump=json -fsyntax-only -Wno-register -include-pch mining/data_process/tests/precompiled.h.pch mining/data_process/tests/temp.cpp >" + genLoc + "/code_ast.json",shell=True)
+            s = subprocess.run(f"clang -Xclang -ast-dump=json -fsyntax-only -Wno-register -include-pch tests/precompiled.h.pch tests/temp.cpp >" + genLoc + "/code_ast.json",shell=True)
                     
-
-d = generate_dataset()
-d.createSampleCsv()
-d.genDataset("codeforces/code_snippets/code_snippets_OK.csv")
-print("Completed Extracting Entire Correct Code AST's")
+if __name__ == "__main__":
+    # d = generate_dataset()
+    # d.genDataset("codeforces/code_snippets/code_snippets_OK.csv")
+    subprocess.run("python3 -i -m mining.inducers.error_inducer",shell=True)
